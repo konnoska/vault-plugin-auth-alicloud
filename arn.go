@@ -46,9 +46,11 @@ func parseARN(a string) (*arn, error) {
 	}
 
 	parsed.RoleName = roleFields[1]
+
 	if len(roleFields) > 2 {
 		parsed.RoleAssumerName = roleFields[2]
 	}
+	parsed.RoleArn = fmt.Sprintf("%s:%s::%s:role/%s", outerFields[0], outerFields[1], parsed.AccountNumber, parsed.RoleName)
 	return parsed, nil
 }
 
@@ -76,6 +78,7 @@ type arn struct {
 	RoleName        string
 	RoleAssumerName string
 	Full            string
+	RoleArn         string
 }
 
 func (a *arn) IsMemberOf(possibleParent *arn) bool {

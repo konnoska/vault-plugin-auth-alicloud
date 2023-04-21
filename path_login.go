@@ -137,6 +137,11 @@ func (b *backend) pathLoginUpdate(ctx context.Context, req *logical.Request, dat
 		return nil, errors.New("the caller's arn does not match the role's arn")
 	}
 
+	aliasName, err := b.getAliasName(ctx, req.Storage, parsedARN, callerIdentity)
+	if err != nil {
+		return nil, err
+	}
+
 	auth := &logical.Auth{
 		Metadata: map[string]string{
 			"account_id":    callerIdentity.AccountId,
@@ -149,8 +154,9 @@ func (b *backend) pathLoginUpdate(ctx context.Context, req *logical.Request, dat
 			"role_name":     roleName,
 		},
 		DisplayName: callerIdentity.PrincipalId,
+
 		Alias: &logical.Alias{
-			Name: callerIdentity.PrincipalId,
+			Name: aliasName,
 		},
 	}
 

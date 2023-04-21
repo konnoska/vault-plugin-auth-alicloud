@@ -5,8 +5,10 @@ package alicloud
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
+	"github.com/aliyun/alibaba-cloud-sdk-go/services/sts"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
@@ -41,6 +43,7 @@ func newBackend(client *http.Client) *backend {
 			},
 		},
 		Paths: []*framework.Path{
+			pathConfig(b),
 			pathLogin(b),
 			pathListRole(b),
 			pathListRoles(b),
@@ -55,6 +58,21 @@ type backend struct {
 	*framework.Backend
 
 	identityClient *http.Client
+}
+
+func (b *backend) getAliasName(ctx context.Context, data logical.Storage, arn *arn, identity *sts.GetCallerIdentityResponse) (string, error) {
+	config, err := b.config(ctx, data)
+	if err != nil {
+		return "", fmt.Errorf("unable to retrieve backend configuration: %w", err)
+	}
+
+	switch config.RamAlias {
+	case "roleArn":
+		return arn.RoleArn, nil
+	default:
+		return identity.PrincipalId, nil
+	}
+
 }
 
 const backendHelp = `
