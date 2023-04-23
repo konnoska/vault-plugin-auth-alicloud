@@ -23,6 +23,7 @@ import (
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/vault-plugin-auth-alicloud/tools"
 	"github.com/hashicorp/vault/sdk/logical"
+	"gotest.tools/assert"
 )
 
 const (
@@ -50,6 +51,8 @@ type testEnv struct {
 	arn       *arn
 	accessKey string
 	secretKey string
+	ramAlias  string
+	config    map[string]interface{}
 }
 
 // This test doesn't make real API calls. It injects a fauxRoundTripper
@@ -98,6 +101,17 @@ func TestBackend_Integration(t *testing.T) {
 	// Create the role again so we can test logging in.
 	t.Run("CreateRole", e.CreateRole)
 	t.Run("LoginSuccess", e.LoginSuccess)
+
+	e.config = map[string]interface{}{"ram_alias": "roleArn"}
+	t.Run("WriteConfig", e.WriteConfig)
+	t.Run("ReadConfig", e.ReadConfig)
+	t.Run("LoginSuccess", e.LoginSuccess)
+
+	e.config = map[string]interface{}{"ram_alias": "principalId"}
+	t.Run("WriteConfig", e.WriteConfig)
+	t.Run("ReadConfig", e.ReadConfig)
+	t.Run("LoginSuccess", e.LoginSuccess)
+
 }
 
 // This test makes real API calls. It's intended for developers and a CI
@@ -149,6 +163,42 @@ func TestBackend_Acceptance(t *testing.T) {
 	// Create the role again so we can test logging in.
 	t.Run("CreateRole", e.CreateRole)
 	t.Run("LoginSuccess", e.LoginSuccess)
+}
+
+func (e *testEnv) WriteConfig(t *testing.T) {
+	req := &logical.Request{
+		Operation: logical.CreateOperation,
+		Path:      "config",
+		Storage:   e.storage,
+		Data:      e.config,
+	}
+	resp, err := e.backend.HandleRequest(e.ctx, req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp != nil {
+		t.Fatal("expected nil response to represent a 204")
+	}
+}
+
+func (e *testEnv) ReadConfig(t *testing.T) {
+	req := &logical.Request{
+		Operation: logical.ReadOperation,
+		Path:      "config",
+		Storage:   e.storage,
+	}
+	resp, err := e.backend.HandleRequest(e.ctx, req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp == nil {
+		t.Fatal("expected response containing data")
+	}
+	expected_ram_alias, _ := e.config["ram_alias"]
+	if resp.Data["ram_alias"] != expected_ram_alias {
+		t.Fatalf("expected ram_alias of %s but received %+v", e.ramAlias, expected_ram_alias)
+	}
+
 }
 
 func (e *testEnv) CreateRole(t *testing.T) {
@@ -423,6 +473,22 @@ func (e *testEnv) LoginSuccess(t *testing.T) {
 	if resp.Auth.Alias.Name == "" {
 		t.Fatal("expected alias name but received none")
 	}
+	if err != nil {
+		t.Fatal("Error retrieving config from storage")
+	}
+	t.Logf("####################################### %s", e.config)
+	if e.config == nil {
+		t.Logf("####################################### IS NOL")
+
+		assert.Equal(t, resp.Auth.Alias.Name, resp.Auth.Metadata["principal_id"])
+	} else if ram_alias, _ := e.config["ram_alias"]; ram_alias == "principalId" {
+		assert.Equal(t, resp.Auth.Alias.Name, resp.Auth.Metadata["principal_id"])
+	} else if ram_alias, _ := e.config["ram_alias"]; ram_alias == "principalId" {
+		assert.Equal(t, resp.Auth.Alias.Name, e.arn.RoleArn)
+	}
+	t.Logf("PRINCIPAL_ID: %s\n", resp.Auth.Metadata["principal_id"])
+	t.Logf("ROLE ARN: %s\n", e.arn.RoleArn)
+	t.Logf("ALIAS_NAME: %s\n", resp.Auth.Alias.Name)
 }
 
 type fauxRoundTripper struct{}

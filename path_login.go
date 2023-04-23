@@ -80,6 +80,8 @@ func (b *backend) pathLoginResolveRole(ctx context.Context, req *logical.Request
 }
 
 func (b *backend) pathLoginUpdate(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	fmt.Println("------------------------------------------ENTERED pathLoginUpdate")
+
 	b64URL := data.Get("identity_request_url").(string)
 	if b64URL == "" {
 		return nil, errors.New("missing identity_request_url")
@@ -108,6 +110,7 @@ func (b *backend) pathLoginUpdate(ctx context.Context, req *logical.Request, dat
 	if parsedARN.Type != arnTypeAssumedRole {
 		return nil, fmt.Errorf("only %s arn types are supported at this time, but %s was provided", arnTypeAssumedRole, parsedARN.Type)
 	}
+	fmt.Println("------------------------------------------FINISHED parserARN")
 
 	roleNameIfc, ok := data.GetOk("role")
 	if !ok {
@@ -132,6 +135,7 @@ func (b *backend) pathLoginUpdate(ctx context.Context, req *logical.Request, dat
 			return nil, logical.ErrPermissionDenied
 		}
 	}
+	fmt.Println("------------------------------------------FINISHED BOUNDCIDRa")
 
 	if !parsedARN.IsMemberOf(role.ARN) {
 		return nil, errors.New("the caller's arn does not match the role's arn")
@@ -139,8 +143,11 @@ func (b *backend) pathLoginUpdate(ctx context.Context, req *logical.Request, dat
 
 	aliasName, err := b.getAliasName(ctx, req.Storage, parsedARN, callerIdentity)
 	if err != nil {
+		fmt.Println("------------ Get aliasname returned error")
 		return nil, err
 	}
+	fmt.Println("------------ Get aliasname NOT returned error")
+	fmt.Println("------------------------------------------FINISHED CONDITIONS pathLoginUpdate")
 
 	auth := &logical.Auth{
 		Metadata: map[string]string{

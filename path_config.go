@@ -2,6 +2,7 @@ package alicloud
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
@@ -60,20 +61,32 @@ type alicloudConfig struct {
 	RamAlias string `json:"ram_alias"`
 }
 
+func newAlicloudConfig() alicloudConfig {
+	return alicloudConfig{
+		RamAlias: defaultRamAlias,
+	}
+}
+
 func (b *backend) config(ctx context.Context, s logical.Storage) (*alicloudConfig, error) {
-	entry, err := s.Get(ctx, "config")
+	fmt.Println("------ENTERED cinfig")
+	config := newAlicloudConfig()
+
+	rawEntry, err := s.Get(ctx, "config")
 	if err != nil {
 		return nil, err
 	}
-	if entry == nil {
-		return nil, nil
+	if rawEntry != nil {
+		err = rawEntry.DecodeJSON(&config)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	config := new(alicloudConfig)
-	if err := entry.DecodeJSON(config); err != nil {
-		return nil, err
-	}
-	return config, nil
+	//if err := entry.DecodeJSON(config); err != nil {
+	//	return nil, err
+	//}
+	fmt.Printf("CONFIG TO RETURN %v\n", config)
+	return &config, nil
 }
 
 func (b *backend) pathConfigExistenceCheck(ctx context.Context, req *logical.Request, _ *framework.FieldData) (bool, error) {
@@ -89,9 +102,6 @@ func (b *backend) pathConfigWrite(ctx context.Context, req *logical.Request, dat
 	if err != nil {
 		return nil, err
 	}
-	if config == nil {
-		config = new(alicloudConfig)
-	}
 
 	config.RamAlias = defaultRamAlias
 	ramAlias, ok := data.GetOk("ram_alias")
@@ -100,6 +110,7 @@ func (b *backend) pathConfigWrite(ctx context.Context, req *logical.Request, dat
 	}
 
 	entry, err := logical.StorageEntryJSON("config", config)
+	fmt.Printf("------------------> Config Write: %+v\n", config)
 	if err != nil {
 		return nil, err
 	}
@@ -115,9 +126,7 @@ func (b *backend) pathConfigRead(ctx context.Context, req *logical.Request, _ *f
 	if err != nil {
 		return nil, err
 	}
-	if config == nil {
-		return nil, nil
-	}
+	fmt.Printf("------------------> Config READ: %+v\n", config)
 
 	resp := &logical.Response{
 		Data: map[string]interface{}{
