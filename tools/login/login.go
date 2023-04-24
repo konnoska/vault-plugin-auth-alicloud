@@ -85,8 +85,6 @@ func main() {
 	}
 	defer resp.Body.Close()
 
-	fmt.Printf("response status code: %d\n", resp.StatusCode)
-
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		panic(err)

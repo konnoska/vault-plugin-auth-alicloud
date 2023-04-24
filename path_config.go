@@ -2,7 +2,6 @@ package alicloud
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
@@ -68,7 +67,6 @@ func newAlicloudConfig() alicloudConfig {
 }
 
 func (b *backend) config(ctx context.Context, s logical.Storage) (*alicloudConfig, error) {
-	fmt.Println("------ENTERED cinfig")
 	config := newAlicloudConfig()
 
 	rawEntry, err := s.Get(ctx, "config")
@@ -82,10 +80,6 @@ func (b *backend) config(ctx context.Context, s logical.Storage) (*alicloudConfi
 		}
 	}
 
-	//if err := entry.DecodeJSON(config); err != nil {
-	//	return nil, err
-	//}
-	fmt.Printf("CONFIG TO RETURN %v\n", config)
 	return &config, nil
 }
 
@@ -110,7 +104,6 @@ func (b *backend) pathConfigWrite(ctx context.Context, req *logical.Request, dat
 	}
 
 	entry, err := logical.StorageEntryJSON("config", config)
-	fmt.Printf("------------------> Config Write: %+v\n", config)
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +119,6 @@ func (b *backend) pathConfigRead(ctx context.Context, req *logical.Request, _ *f
 	if err != nil {
 		return nil, err
 	}
-	fmt.Printf("------------------> Config READ: %+v\n", config)
 
 	resp := &logical.Response{
 		Data: map[string]interface{}{

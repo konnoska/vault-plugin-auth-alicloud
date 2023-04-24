@@ -61,22 +61,16 @@ type backend struct {
 }
 
 func (b *backend) getAliasName(ctx context.Context, data logical.Storage, arn *arn, identity *sts.GetCallerIdentityResponse) (string, error) {
-	fmt.Println("-------------ENTERED getAliasName")
-	defer fmt.Println("-------------EXITED getAliasName")
 	config, err := b.config(ctx, data)
 
 	if err != nil {
 		return "", fmt.Errorf("unable to retrieve backend configuration: %w", err)
 	}
 
-	fmt.Println("-------------BEFORE SWITCH getAliasName")
-	fmt.Printf("CONFIG:  %+v\n", config)
 	switch config.RamAlias {
 	case "roleArn":
-		fmt.Println("The case is roleArn")
 		return arn.RoleArn, nil
 	default:
-		fmt.Println("The case is default")
 		return identity.PrincipalId, nil
 	}
 
